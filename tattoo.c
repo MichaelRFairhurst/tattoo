@@ -11,6 +11,7 @@
 #define WIDTH 1800
 #define HEIGHT 920
 #define FONT_SIZE 72
+#define SLOPE 0.75
 
 #define MAX_NUMBER_COUNT 10
 #define NUMBER_LEFT 0x10
@@ -49,8 +50,8 @@ void rel_line_to_and_back(int x, int y) {
 }
 
 void branch(int lenl, int lenr) {
-  rel_line_to_and_back(-lenl, lenl);
-  rel_line_to_and_back(lenr, lenr);
+  rel_line_to_and_back(-lenl * SLOPE, lenl);
+  rel_line_to_and_back(lenr * SLOPE, lenr);
 }
 
 int recap(int len, int offset, int cap) {
@@ -95,6 +96,7 @@ void numbers(int numberc, int* numbers, int len, char** text) {
       int movex = left ? -sectionl : sectionl;
       int movey = sectionl + (bit == 1 ? -offsety : 0);
       movex -= left ? -(sectionl - movey) : sectionl - movey;
+      movex *= SLOPE;
       reversex += movex;
       cairo_rel_line_to(cairo, movex, movey);
       cairo_stroke_preserve(cairo);
@@ -103,10 +105,10 @@ void numbers(int numberc, int* numbers, int len, char** text) {
   }
 
   cairo_set_font_size(cairo, FONT_SIZE);
-  cairo_rel_move_to(cairo, -len, len + SPACING * 3);
+  cairo_rel_move_to(cairo, -len * SLOPE, len + SPACING * 3);
   for (int i = 0; i < 8; ++i) {
     cairo_text_extents_t extents;
-    cairo_rel_move_to(cairo, len / 4, 0);
+    cairo_rel_move_to(cairo, (len / 4) * SLOPE, 0);
     cairo_text_extents(cairo, text[i], &extents);
     cairo_rel_move_to(cairo, -extents.x_advance/2, 0);
     cairo_show_text(cairo, text[i]);
@@ -124,18 +126,18 @@ void tree(Branch *root) {
   }
   branches(root, SPACING);
   if (root->left != NULL) {
-    cairo_rel_move_to(cairo, -root->lenl, root->lenl);
+    cairo_rel_move_to(cairo, -root->lenl * SLOPE, root->lenl);
     cairo_rel_move_to(cairo, -SPACING*1.5, 0);
     tree(root->left);
     cairo_rel_move_to(cairo, SPACING*1.5, 0);
-    cairo_rel_move_to(cairo, root->lenl, -root->lenl);
+    cairo_rel_move_to(cairo, root->lenl * SLOPE, -root->lenl);
   }
   if (root->right != NULL) {
-    cairo_rel_move_to(cairo, root->lenr, root->lenr);
+    cairo_rel_move_to(cairo, root->lenr * SLOPE, root->lenr);
     cairo_rel_move_to(cairo, SPACING*1.5, 0);
     tree(root->right);
     cairo_rel_move_to(cairo, -SPACING*1.5, 0);
-    cairo_rel_move_to(cairo, -root->lenr, -root->lenr);
+    cairo_rel_move_to(cairo, -root->lenr * SLOPE, -root->lenr);
   }
 }
 
