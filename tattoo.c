@@ -6,8 +6,8 @@
 
 #define LINE_WIDTH 6
 #define SPACING 24
-#define LONG_BRANCH_LEN 400
-#define SHORT_BRANCH_LEN ((LONG_BRANCH_LEN * 2) / 3)
+#define BRANCH_LEN 300
+#define BRANCH_DIFFERENCE 50
 #define WIDTH 1800
 #define HEIGHT 920
 #define FONT_SIZE 72
@@ -150,27 +150,27 @@ void paint() {
   Branch lowl = {
     .left = NULL,
     .right = NULL,
-    .lenl = SHORT_BRANCH_LEN,
+    .lenl = BRANCH_LEN,
     .capl = horizontal,
-    .lenr = SHORT_BRANCH_LEN,
+    .lenr = BRANCH_LEN,
     .capr = horizontal,
     .numberc = 0,
   };
   Branch midl = {
     .left = &lowl,
     .right = NULL,
-    .lenl = SHORT_BRANCH_LEN,
+    .lenl = BRANCH_LEN,
     .capl = diagonal,
-    .lenr = SHORT_BRANCH_LEN,
+    .lenr = BRANCH_LEN,
     .capr = horizontal,
     .numberc = 0,
   };
   Branch lowr = {
     .left = NULL,
     .right = NULL,
-    .lenl = LONG_BRANCH_LEN,
+    .lenl = BRANCH_LEN * 2 - SPACING - BRANCH_DIFFERENCE,
     .capl = horizontal,
-    .lenr = LONG_BRANCH_LEN,
+    .lenr = BRANCH_LEN * 2 - SPACING - BRANCH_DIFFERENCE,
     .capr = horizontal,
     .numberc = 5,
     .numbers = {1 | NUMBER_LEFT, 0, 1 | NUMBER_LEFT, 2, 5 | NUMBER_LEFT},
@@ -179,9 +179,9 @@ void paint() {
   Branch root = {
     .left = &midl,
     .right = &lowr,
-    .lenl = SHORT_BRANCH_LEN,
+    .lenl = BRANCH_LEN,
     .capl = diagonal,
-    .lenr = LONG_BRANCH_LEN,
+    .lenr = BRANCH_LEN + BRANCH_DIFFERENCE,
     .capr = diagonal,
   };
   tree(&root);
