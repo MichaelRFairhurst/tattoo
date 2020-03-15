@@ -1,5 +1,6 @@
 #include <cairo/cairo-xlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <sys/file.h>
 #include <assert.h>
@@ -80,6 +81,14 @@ void numbers(int numberc, int* numbers, int len, char** text) {
   int leftc = 0;
   int rightc = 0;
   double sectionl = len / 4.0;
+
+  // Represents where a turn has occurred that takes up a space. The first index
+  // represents how far left or right the location occured. The second index
+  // represents whether the line went left or right. The value is the bits at
+  // which point that occurred.
+  int lineSegments[9][2];
+  memset(lineSegments, 0, sizeof(lineSegments));
+
   for (int i = 0; i < numberc; ++i) {
     int number = numbers[i];
     double reversex = 0;
@@ -93,6 +102,7 @@ void numbers(int numberc, int* numbers, int len, char** text) {
     // TODO: figure out a better way to stagger the top points.
     int offsety = left ? SPACING * leftc : SPACING * rightc;
     int offsetx = left ? offsety : -offsety;
+    int xIndex = 4;
     cairo_rel_move_to(cairo, 0, offsety);
     if (left) {
       leftc++;
@@ -113,10 +123,19 @@ void numbers(int numberc, int* numbers, int len, char** text) {
     //  / \ <- right line is offset vertically
     // /   \ <- right line is not longer offset.
     //
-    for (int bit = 8; bit > 0; bit >>= 1) {
+    // Note that when the space is taken, we cannot do this:
+    //
+    //  //     \ /
+    // //  or   / <- gap
+    // \\      //
+    //  \\    //
+    for (int yIndex = 0, bit = 8; bit > 0; bit >>= 1, yIndex++) {
       left = number & bit ? !left : left;
+      int isTargetSegmentTaken = lineSegments[xIndex][!left] & (bit >> 1);
+      xIndex += left ? -1 : 1;
+      lineSegments[xIndex][left] |= bit;
       double move;
-      if (number & (bit >> 1)) {
+      if (number & (bit >> 1) && !isTargetSegmentTaken) {
         // If our next action is a turn, we draw a long enough line to
         // intersect with the next path.
         move = sectionl + (offsetx > 0 ? offsetx : -offsetx)/2 - offsety;
@@ -126,11 +145,18 @@ void numbers(int numberc, int* numbers, int len, char** text) {
         move = sectionl - offsety;
         offsety = 0;
       }
-      // TODO: handle when lines cross.
+      if (!left && isTargetSegmentTaken) {
+        move -= SPACING/2;
+      }
       double movex = left ? -move : move;
       reversex += movex;
       cairo_rel_line_to(cairo, movex, move);
       cairo_stroke_preserve(cairo);
+      if (!left && isTargetSegmentTaken) {
+        offsetx = SPACING/2;
+        offsety = SPACING/2;
+        cairo_rel_move_to(cairo, SPACING, SPACING);
+      }
     }
     cairo_rel_move_to(cairo, -reversex, -len);
   }
