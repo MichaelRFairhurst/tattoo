@@ -78,8 +78,6 @@ void branches(Branch* tree, int offset) {
 }
 
 void numbers(int numberc, int* numbers, int len, char** text) {
-  int leftc = 0;
-  int rightc = 0;
   double sectionl = len / 4.0;
 
   // Represents where a turn has occurred that takes up a space. The first index
@@ -88,6 +86,9 @@ void numbers(int numberc, int* numbers, int len, char** text) {
   // which point that occurred.
   int lineSegments[9][2];
   memset(lineSegments, 0, sizeof(lineSegments));
+
+  int leftc = 0;
+  int rightc = 0;
 
   for (int i = 0; i < numberc; ++i) {
     int number = numbers[i];
@@ -99,11 +100,16 @@ void numbers(int numberc, int* numbers, int len, char** text) {
     //  /\
     // // \ <- inner line is offset horizontally and vertically.
     //
-    // TODO: figure out a better way to stagger the top points.
     int offsety = left ? SPACING * leftc : SPACING * rightc;
     int offsetx = left ? offsety : -offsety;
     int xIndex = 4;
     cairo_rel_move_to(cairo, 0, offsety);
+    int isOppositeSegmentTaken = i > 1 && (left ? leftc < rightc : leftc > rightc);
+    if (isOppositeSegmentTaken) {
+      cairo_rel_move_to(cairo, left ? -SPACING : SPACING, SPACING);
+      offsety += SPACING;
+      reversex += left ? -SPACING : SPACING;
+    }
     if (left) {
       leftc++;
     } else {
