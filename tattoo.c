@@ -79,26 +79,57 @@ void branches(Branch* tree, int offset) {
 void numbers(int numberc, int* numbers, int len, char** text) {
   int leftc = 0;
   int rightc = 0;
-  int sectionl = len / 4;
+  double sectionl = len / 4.0;
   for (int i = 0; i < numberc; ++i) {
     int number = numbers[i];
-    int reversex = 0;
+    double reversex = 0;
     int left = number & NUMBER_LEFT;
+    // The lines do not all meet at the top, but rather are horizontally offset.
+    // Since they are horizontally offset, they cannot meet exactly at the top.
+    //
+    //  /\
+    // // \ <- inner line is offset horizontally and vertically.
+    //
+    // TODO: figure out a better way to stagger the top points.
     int offsety = left ? SPACING * leftc : SPACING * rightc;
+    int offsetx = left ? offsety : -offsety;
     cairo_rel_move_to(cairo, 0, offsety);
     if (left) {
       leftc++;
     } else {
       rightc++;
     }
+    // For our basic algorithm here, we track an x offset & y offset that we can
+    // fix during turns (former) or straights (latter).
+    //
+    //    / <- without offsets, the two lines would stack here
+    //   x <- and split here.
+    //  / \ <- right line is offset vertically
+    //
+    // Instead we do:
+    //
+    //    //
+    //   // <- right line is offset horizontally
+    //  / \ <- right line is offset vertically
+    // /   \ <- right line is not longer offset.
+    //
     for (int bit = 8; bit > 0; bit >>= 1) {
       left = number & bit ? !left : left;
-      int movex = left ? -sectionl : sectionl;
-      int movey = sectionl + (bit == 1 ? -offsety : 0);
-      movex -= left ? -(sectionl - movey) : sectionl - movey;
-      movex *= SLOPE;
+      double move;
+      if (number & (bit >> 1)) {
+        // If our next action is a turn, we draw a long enough line to
+        // intersect with the next path.
+        move = sectionl + (offsetx > 0 ? offsetx : -offsetx)/2 - offsety;
+        offsety = (offsetx > 0 ? offsetx : -offsetx) / 2;
+        offsetx = 0;
+      } else {
+        move = sectionl - offsety;
+        offsety = 0;
+      }
+      // TODO: handle when lines cross.
+      double movex = left ? -move : move;
       reversex += movex;
-      cairo_rel_line_to(cairo, movex, movey);
+      cairo_rel_line_to(cairo, movex, move);
       cairo_stroke_preserve(cairo);
     }
     cairo_rel_move_to(cairo, -reversex, -len);
@@ -174,7 +205,7 @@ void paint() {
     .capr = horizontal,
     .numberc = 5,
     .numbers = {1 | NUMBER_LEFT, 0, 1 | NUMBER_LEFT, 2, 5 | NUMBER_LEFT},
-    .numbertext = {NULL, "11,", NULL, "    25", NULL, NULL, NULL, "0"},
+    .numbertext = {NULL, "11", NULL, "25", NULL, NULL, NULL, "0"},
   };
   Branch root = {
     .left = &midl,
